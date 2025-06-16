@@ -1,1 +1,524 @@
 
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEGO SPIKE Prime: Scratch ↔ Python Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            min-height: 70vh;
+        }
+
+        .sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .category {
+            margin-bottom: 25px;
+        }
+
+        .category h3 {
+            color: #495057;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 5px;
+        }
+
+        .block-item {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 8px;
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .block-item:hover {
+            border-color: #007bff;
+            background: #f8f9ff;
+            transform: translateX(5px);
+        }
+
+        .block-item.active {
+            border-color: #007bff;
+            background: #007bff;
+            color: white;
+        }
+
+        .display-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .language-tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            font-size: 1.1em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            background: white;
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+        }
+
+        .code-panels {
+            flex: 1;
+            display: flex;
+        }
+
+        .code-panel {
+            flex: 1;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .code-panel.scratch {
+            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
+        }
+
+        .code-panel.python {
+            background: linear-gradient(135deg, #74b9ff, #0984e3);
+        }
+
+        .code-display {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            min-height: 200px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 3px solid rgba(255,255,255,0.3);
+        }
+
+        .scratch-block {
+            display: inline-block;
+            padding: 12px 20px;
+            background: #ff6b6b;
+            color: white;
+            border-radius: 20px;
+            margin: 5px;
+            font-weight: bold;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+        }
+
+        .scratch-block.motion { background: #4c94ff; }
+        .scratch-block.sound { background: #d65cd6; }
+        .scratch-block.sensor { background: #5cb85c; }
+        .scratch-block.control { background: #ffab19; }
+        .scratch-block.operator { background: #40bf4b; }
+
+        .python-code {
+            font-family: 'Courier New', monospace;
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 0.95em;
+            line-height: 1.6;
+            overflow-x: auto;
+        }
+
+        .python-keyword { color: #f687b3; }
+        .python-string { color: #68d391; }
+        .python-number { color: #63b3ed; }
+        .python-comment { color: #a0aec0; }
+
+        .description {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .welcome-message {
+            text-align: center;
+            color: #6c757d;
+            font-size: 1.2em;
+            margin-top: 50px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+            
+            .code-panels {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 SPIKE Prime Converter</h1>
+            <p>Převod mezi Scratch bloky a Python kódem</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="sidebar">
+                <div class="category">
+                    <h3>🏃 Pohyb motorů</h3>
+                    <button class="block-item" data-category="motion" data-block="run-motor">
+                        Spustit motor A na 1 otáčku
+                    </button>
+                    <button class="block-item" data-category="motion" data-block="run-motor-speed">
+                        Spustit motor A rychlostí 50%
+                    </button>
+                    <button class="block-item" data-category="motion" data-block="stop-motor">
+                        Zastavit motor A
+                    </button>
+                    <button class="block-item" data-category="motion" data-block="move-tank">
+                        Pohyb tank (motory B+C)
+                    </button>
+                </div>
+
+                <div class="category">
+                    <h3>🔊 Zvuky</h3>
+                    <button class="block-item" data-category="sound" data-block="play-sound">
+                        Přehrát zvuk "Bark"
+                    </button>
+                    <button class="block-item" data-category="sound" data-block="play-beep">
+                        Pípnutí na frekvenci 1000Hz
+                    </button>
+                </div>
+
+                <div class="category">
+                    <h3>📡 Senzory</h3>
+                    <button class="block-item" data-category="sensor" data-block="distance-sensor">
+                        Vzdálenost (ultrazvukový senzor)
+                    </button>
+                    <button class="block-item" data-category="sensor" data-block="color-sensor">
+                        Barva (barevný senzor)
+                    </button>
+                    <button class="block-item" data-category="sensor" data-block="force-sensor">
+                        Síla (tlakový senzor)
+                    </button>
+                </div>
+
+                <div class="category">
+                    <h3>🔄 Smyčky & Podmínky</h3>
+                    <button class="block-item" data-category="control" data-block="repeat">
+                        Opakovat 10x
+                    </button>
+                    <button class="block-item" data-category="control" data-block="if-condition">
+                        Pokud vzdálenost < 10
+                    </button>
+                    <button class="block-item" data-category="control" data-block="wait">
+                        Čekat 1 sekundu
+                    </button>
+                </div>
+
+                <div class="category">
+                    <h3>💡 LED & Display</h3>
+                    <button class="block-item" data-category="display" data-block="show-image">
+                        Zobrazit obrázek srdce
+                    </button>
+                    <button class="block-item" data-category="display" data-block="set-pixel">
+                        Rozsvítit pixel (2,2)
+                    </button>
+                </div>
+            </div>
+
+            <div class="display-area">
+                <div class="language-tabs">
+                    <button class="tab active" data-lang="both">Oboje</button>
+                    <button class="tab" data-lang="scratch">Pouze Scratch</button>
+                    <button class="tab" data-lang="python">Pouze Python</button>
+                </div>
+
+                <div class="code-panels" id="codePanels">
+                    <div class="code-panel scratch">
+                        <h3 style="margin-bottom: 20px; color: #d63031;">🧩 Scratch bloky</h3>
+                        <div class="code-display" id="scratchDisplay">
+                            <div class="welcome-message">
+                                👈 Vyberte blok ze seznamu vlevo
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="code-panel python">
+                        <h3 style="margin-bottom: 20px; color: #0984e3;">🐍 Python kód</h3>
+                        <div class="code-display" id="pythonDisplay">
+                            <div class="welcome-message">
+                                👈 Vyberte blok ze seznamu vlevo
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const codeBlocks = {
+            'run-motor': {
+                scratch: '<div class="scratch-block motion">spustit motor A na 1 otáčku</div>',
+                python: `<div class="python-code"><span class="python-comment"># Import SPIKE Prime knihovny</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> Motor
+
+<span class="python-comment"># Vytvoření objektu motoru</span>
+motor_a = Motor(<span class="python-string">'A'</span>)
+
+<span class="python-comment"># Spuštění motoru na 1 otáčku</span>
+motor_a.run_for_rotations(<span class="python-number">1</span>)</div>`,
+                description: 'Spustí motor připojený k portu A na přesně jednu otáčku. Motor se po dokončení otáčky zastaví.'
+            },
+            'run-motor-speed': {
+                scratch: '<div class="scratch-block motion">spustit motor A rychlostí 50%</div>',
+                python: `<div class="python-code"><span class="python-comment"># Spuštění motoru určitou rychlostí</span>
+motor_a = Motor(<span class="python-string">'A'</span>)
+motor_a.start(<span class="python-number">50</span>)  <span class="python-comment"># 50% rychlost</span></div>`,
+                description: 'Spustí motor rychlostí 50% (rozsah je -100 až +100). Motor poběží dokud ho nezastavíte.'
+            },
+            'stop-motor': {
+                scratch: '<div class="scratch-block motion">zastavit motor A</div>',
+                python: `<div class="python-code"><span class="python-comment"># Zastavení motoru</span>
+motor_a = Motor(<span class="python-string">'A'</span>)
+motor_a.stop()</div>`,
+                description: 'Zastaví motor připojený k portu A.'
+            },
+            'move-tank': {
+                scratch: '<div class="scratch-block motion">pohyb tank: motor B rychlost 50%, motor C rychlost 30%</div>',
+                python: `<div class="python-code"><span class="python-comment"># Pohyb tank - dva motory současně</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> MotorPair
+
+<span class="python-comment"># Vytvoření páru motorů</span>
+tank = MotorPair(<span class="python-string">'B'</span>, <span class="python-string">'C'</span>)
+
+<span class="python-comment"># Pohyb tank - levý motor 50%, pravý 30%</span>
+tank.start_tank(<span class="python-number">50</span>, <span class="python-number">30</span>)</div>`,
+                description: 'Ovládá dva motory současně jako tank. Užitečné pro pohyb robota.'
+            },
+            'play-sound': {
+                scratch: '<div class="scratch-block sound">přehrát zvuk "Bark"</div>',
+                python: `<div class="python-code"><span class="python-comment"># Přehrání zvuku</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> Speaker
+
+<span class="python-comment"># Přehrání zvuku</span>
+speaker = Speaker()
+speaker.play_sound(<span class="python-string">'Bark'</span>)</div>`,
+                description: 'Přehraje zvuk "Bark" přes reproduktor SPIKE Prime hubu.'
+            },
+            'play-beep': {
+                scratch: '<div class="scratch-block sound">pípnout na frekvenci 1000 Hz po dobu 0.5 sekund</div>',
+                python: `<div class="python-code"><span class="python-comment"># Pípnutí na určité frekvenci</span>
+speaker = Speaker()
+speaker.play_beep(<span class="python-number">1000</span>, <span class="python-number">0.5</span>)  <span class="python-comment"># 1000Hz, 0.5s</span></div>`,
+                description: 'Vytvoří pípnutí na frekvenci 1000 Hz po dobu 0.5 sekundy.'
+            },
+            'distance-sensor': {
+                scratch: '<div class="scratch-block sensor">vzdálenost ultrazvukového senzoru</div>',
+                python: `<div class="python-code"><span class="python-comment"># Čtení vzdálenosti</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> DistanceSensor
+
+<span class="python-comment"># Vytvoření senzoru</span>
+distance_sensor = DistanceSensor(<span class="python-string">'1'</span>)
+
+<span class="python-comment"># Získání vzdálenosti v cm</span>
+distance = distance_sensor.get_distance_cm()
+<span class="python-keyword">print</span>(distance)</div>`,
+                description: 'Získá vzdálenost v centimetrech z ultrazvukového senzoru připojeného k portu 1.'
+            },
+            'color-sensor': {
+                scratch: '<div class="scratch-block sensor">barva barevného senzoru</div>',
+                python: `<div class="python-code"><span class="python-comment"># Čtení barvy</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> ColorSensor
+
+<span class="python-comment"># Vytvoření senzoru</span>
+color_sensor = ColorSensor(<span class="python-string">'2'</span>)
+
+<span class="python-comment"># Získání barvy</span>
+color = color_sensor.get_color()
+<span class="python-keyword">print</span>(color)  <span class="python-comment"># např. "red", "blue", "green"</span></div>`,
+                description: 'Detekuje barvu pomocí barevného senzoru. Vrací název barvy jako text.'
+            },
+            'force-sensor': {
+                scratch: '<div class="scratch-block sensor">síla tlakového senzoru</div>',
+                python: `<div class="python-code"><span class="python-comment"># Čtení síly</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> ForceSensor
+
+<span class="python-comment"># Vytvoření senzoru</span>
+force_sensor = ForceSensor(<span class="python-string">'3'</span>)
+
+<span class="python-comment"># Získání síly v newtonech</span>
+force = force_sensor.get_force_newton()
+<span class="python-keyword">print</span>(force)</div>`,
+                description: 'Měří sílu v newtonech pomocí tlakového senzoru.'
+            },
+            'repeat': {
+                scratch: '<div class="scratch-block control">opakovat 10x<br><div style="margin-left: 20px; margin-top: 10px;">• příkazy uvnitř smyčky</div></div>',
+                python: `<div class="python-code"><span class="python-comment"># Smyčka - opakování 10x</span>
+<span class="python-keyword">for</span> i <span class="python-keyword">in</span> range(<span class="python-number">10</span>):
+    <span class="python-comment"># Zde napište příkazy které se mají opakovat</span>
+    <span class="python-keyword">print</span>(<span class="python-string">f"Opakování číslo: {i+1}"</span>)</div>`,
+                description: 'Opakuje blok kódu 10krát. V Pythonu používáme for smyčku s range().'
+            },
+            'if-condition': {
+                scratch: '<div class="scratch-block control">pokud <span class="scratch-block sensor">vzdálenost ultrazvukového senzoru</span> < 10<br><div style="margin-left: 20px; margin-top: 10px;">• pak proveď tyto příkazy</div></div>',
+                python: `<div class="python-code"><span class="python-comment"># Podmínka - pokud je vzdálenost menší než 10cm</span>
+distance = distance_sensor.get_distance_cm()
+
+<span class="python-keyword">if</span> distance < <span class="python-number">10</span>:
+    <span class="python-comment"># Příkazy které se provedou pokud je podmínka splněna</span>
+    <span class="python-keyword">print</span>(<span class="python-string">"Překážka blízko!"</span>)</div>`,
+                description: 'Provede příkazy pouze pokud je splněna podmínka (vzdálenost menší než 10 cm).'
+            },
+            'wait': {
+                scratch: '<div class="scratch-block control">čekat 1 sekundu</div>',
+                python: `<div class="python-code"><span class="python-comment"># Čekání (pauza)</span>
+<span class="python-keyword">import</span> time
+
+<span class="python-comment"># Čekat 1 sekundu</span>
+time.sleep(<span class="python-number">1</span>)</div>`,
+                description: 'Pozastaví program na 1 sekundu. V Pythonu používáme time.sleep().'
+            },
+            'show-image': {
+                scratch: '<div class="scratch-block display">zobrazit obrázek srdce</div>',
+                python: `<div class="python-code"><span class="python-comment"># Zobrazení obrázku na LED matrici</span>
+<span class="python-keyword">from</span> spike <span class="python-keyword">import</span> LightMatrix
+
+<span class="python-comment"># Zobrazení srdce</span>
+light_matrix = LightMatrix()
+light_matrix.show_image(<span class="python-string">'HEART'</span>)</div>`,
+                description: 'Zobrazí obrázek srdce na 5x5 LED matrici SPIKE Prime hubu.'
+            },
+            'set-pixel': {
+                scratch: '<div class="scratch-block display">rozsvítit pixel na pozici (2,2) na 100%</div>',
+                python: `<div class="python-code"><span class="python-comment"># Rozsvícení konkrétního pixelu</span>
+light_matrix = LightMatrix()
+
+<span class="python-comment"># Rozsvítit pixel na pozici (2,2) na 100%</span>
+light_matrix.set_pixel(<span class="python-number">2</span>, <span class="python-number">2</span>, <span class="python-number">100</span>)</div>`,
+                description: 'Rozsvítí konkrétní pixel na LED matrici. Souřadnice jsou od 0 do 4, jas od 0 do 100%.'
+            }
+        };
+
+        // Obsluha kliknutí na bloky
+        document.querySelectorAll('.block-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // Odstranit active třídu ze všech bloků
+                document.querySelectorAll('.block-item').forEach(block => {
+                    block.classList.remove('active');
+                });
+                
+                // Přidat active třídu k aktuálnímu bloku
+                this.classList.add('active');
+                
+                // Získat data bloku
+                const blockId = this.dataset.block;
+                const blockData = codeBlocks[blockId];
+                
+                if (blockData) {
+                    // Zobrazit Scratch blok
+                    document.getElementById('scratchDisplay').innerHTML = blockData.scratch;
+                    
+                    // Zobrazit Python kód
+                    document.getElementById('pythonDisplay').innerHTML = blockData.python;
+                    
+                    // Přidat popis
+                    const description = `<div class="description"><strong>Vysvětlení:</strong> ${blockData.description}</div>`;
+                    document.getElementById('pythonDisplay').innerHTML += description;
+                }
+            });
+        });
+
+        // Obsluha záložek
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Odstranit active ze všech záložek
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                
+                const lang = this.dataset.lang;
+                const panels = document.getElementById('codePanels');
+                
+                if (lang === 'both') {
+                    panels.style.display = 'flex';
+                    panels.querySelector('.scratch').style.display = 'block';
+                    panels.querySelector('.python').style.display = 'block';
+                } else if (lang === 'scratch') {
+                    panels.style.display = 'flex';
+                    panels.querySelector('.scratch').style.display = 'block';
+                    panels.querySelector('.python').style.display = 'none';
+                } else if (lang === 'python') {
+                    panels.style.display = 'flex';
+                    panels.querySelector('.scratch').style.display = 'none';
+                    panels.querySelector('.python').style.display = 'block';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
